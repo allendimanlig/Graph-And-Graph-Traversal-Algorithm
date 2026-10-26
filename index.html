@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Graph Algorithm Visualizer</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  
+  <style>
+    :root {
+      --bg-deep: #090d16;
+      --bg-card: rgba(18, 26, 43, 0.75);
+      --bg-input: #1b263b;
+      --bg-input-hover: #273754;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(56, 189, 248, 0.25);
+      
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --accent-cyan: #38bdf8;
+      --accent-cyan-glow: rgba(56, 189, 248, 0.4);
+      --accent-purple: #a855f7;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+
+      --node-default-bg: #0f172a;
+      --node-default-stroke: #38bdf8;
+      --node-visited-bg: #064e3b;
+      --node-visited-stroke: #10b981;
+      --node-current-bg: #78350f;
+      --node-current-stroke: #f59e0b;
+      --node-queued-bg: #4c1d95;
+      --node-queued-stroke: #a855f7;
+
+      --edge-default: #334155;
+      --edge-active: #f59e0b;
+      --edge-path: #10b981;
+
+      --header-height: 64px;
+      --ds-panel-height: 110px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, var(--bg-deep) 70%);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .app-header {
+      height: var(--header-height);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 20;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .logo i {
+      color: var(--accent-cyan);
+      filter: drop-shadow(0 0 8px var(--accent-cyan-glow));
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    select, input, button {
+      background-color: var(--bg-input);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, select:focus {
+      background-color: var(--bg-input-hover);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+    }
+
+    select optgroup, select option {
+      background: #0f172a;
+      color: var(--text-primary);
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 220px 1fr 340px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .sidebar-tools {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border-color);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .sidebar-tools h3 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 14px 0 4px 4px;
+    }
+
+    .sidebar-tools h3:first-of-type {
+      margin-top: 4px;
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      padding: 9px 12px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    .tool-btn:hover {
+      background: var(--bg-input);
+      color: var(--text-primary);
+    }
+
+    .tool-btn.active {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--border-glow);
+      color: var(--accent-cyan);
+    }
+
+    .btn-secondary {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-input-hover);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.1);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: var(--accent-rose);
+      margin-top: auto;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.25);
+      border-color: var(--accent-rose);
+    }
+
+    .canvas-section {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.3) 0%, transparent 80%);
+    }
+
+    .canvas-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #graphCanvas {
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .canvas-instruction {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent-cyan);
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+
+    .playback-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 12px 24px;
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-color);
+      z-index: 10;
+    }
+
+    .btn-playback {
+      padding: 9px 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent-cyan);
+      color: #0f172a;
+      border: none;
+      box-shadow: 0 0 15px var(--accent-cyan-glow);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+
+    .btn-playback:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .speed-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 24px;
+      padding-left: 24px;
+      border-left: 1px solid var(--border-color);
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    .speed-container input[type="range"] {
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .sidebar-info {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .panel {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .panel h3 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #pseudocodeDisplay {
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+      font-size: 0.76rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: #cbd5e1;
+    }
+
+    .line-highlight {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fde047;
+      font-weight: 600;
+      display: block;
+      border-left: 3px solid var(--accent-amber);
+      padding-left: 4px;
+      margin-left: -4px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .complexity-panel p {
+      font-size: 0.85rem;
+      margin-top: 4px;
+      color: var(--text-secondary);
+    }
+
+    .complexity-panel span {
+      color: #f1f5f9;
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    .step-log-box {
+      height: 160px;
+      overflow-y: auto;
+      font-size: 0.78rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+    }
+
+    .log-entry {
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      line-height: 1.4;
+      animation: fadeIn 0.2s ease-in;
+    }
+
+    .log-entry.active {
+      border-left: 3px solid var(--accent-cyan);
+      color: var(--text-primary);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .ds-inspector {
+      height: var(--ds-panel-height);
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-color);
+      padding: 10px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .ds-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ds-title i {
+      color: var(--accent-purple);
+    }
+
+    .ds-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      flex: 1;
+      padding: 4px 0;
+    }
+
+    .ds-item {
+      min-width: 40px;
+      height: 40px;
+      padding: 0 10px;
+      background: var(--bg-deep);
+      border: 2px solid var(--accent-purple);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .ds-item.highlight {
+      border-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.2);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-input);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .node-circle {
+      fill: var(--node-default-bg);
+      stroke: var(--node-default-stroke);
+      stroke-width: 3px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.3));
+    }
+
+    .node-circle.visited { 
+      fill: var(--node-visited-bg); 
+      stroke: var(--node-visited-stroke); 
+      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+    }
+
+    .node-circle.current { 
+      fill: var(--node-current-bg); 
+      stroke: var(--node-current-stroke); 
+      filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6));
+    }
+
+    .node-circle.queued { 
+      fill: var(--node-queued-bg); 
+      stroke: var(--node-queued-stroke); 
+      filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.5));
+    }
+
+    .node-text {
+      fill: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      pointer-events: none;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    .edge-line {
+      stroke: var(--edge-default);
+      stroke-width: 3px;
+      stroke-linecap: round;
+      transition: all 0.3s ease;
+    }
+
+    .edge-line.active { 
+      stroke: var(--edge-active); 
+      stroke-width: 4px; 
+      filter: drop-shadow(0 0 6px var(--accent-amber));
+    }
+
+    .edge-line.path { 
+      stroke: var(--edge-path); 
+      stroke-width: 4px; 
+      filter: drop-shadow(0 0 6px var(--accent-emerald));
+    }
+
+    .edge-weight {
+      fill: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      text-anchor: middle;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="logo">
+        <i class="fa-solid fa-network-wired"></i>
+        <span>Graph Algorithm Visualizer</span>
+      </div>
+      
+      <div class="header-controls">
+        <div class="control-group">
+          <label for="algoSelect"><i class="fa-solid fa-code-branch"></i> Algorithm:</label>
+          <select id="algoSelect">
+            <optgroup label="Traversals">
+              <option value="bfs">Breadth-First Search (BFS)</option>
+              <option value="dfs">Depth-First Search (DFS)</option>
+            </optgroup>
+            <optgroup label="Shortest Path">
+              <option value="dijkstra">Dijkstra's Algorithm</option>
+            </optgroup>
+            <optgroup label="Analysis">
+              <option value="cycle">Cycle Detection</option>
+              <option value="toposort">Topological Sort (DAG)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="graphType">Type:</label>
+          <select id="graphType">
+            <option value="undirected">Undirected</option>
+            <option value="directed">Directed</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="startNodeSelect">Start:</label>
+          <select id="startNodeSelect"></select>
+        </div>
+
+        <div class="control-group">
+          <label for="targetNodeSelect">Target:</label>
+          <select id="targetNodeSelect">
+            <option value="none">None</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+      <!-- LEFT TOOLBAR -->
+      <aside class="sidebar-tools">
+        <h3>Graph Tools</h3>
+        <button id="toolSelect" class="tool-btn active" title="Select / Move Nodes">
+          <i class="fa-solid fa-arrow-pointer"></i> Select / Move
+        </button>
+        <button id="toolAddNode" class="tool-btn" title="Click Canvas to Add Node">
+          <i class="fa-solid fa-circle-plus"></i> Add Node
+        </button>
+        <button id="toolAddEdge" class="tool-btn" title="Click Two Nodes to Connect">
+          <i class="fa-solid fa-diagram-project"></i> Add Edge
+        </button>
+        <button id="toolRemove" class="tool-btn" title="Click Node/Edge to Delete">
+          <i class="fa-solid fa-trash-can"></i> Delete Element
+        </button>
+
+        <h3>Presets</h3>
+        <button id="presetBinaryTree" class="btn-secondary">Binary Tree</button>
+        <button id="presetCyclic" class="btn-secondary">Cyclic Graph</button>
+        <button id="presetDAG" class="btn-secondary">DAG Network</button>
+        
+        <button id="btnClear" class="btn-danger">
+          <i class="fa-solid fa-broom"></i> Clear Canvas
+        </button>
+      </aside>
+
+      <!-- CENTER CANVAS & EXECUTION BAR -->
+      <section class="canvas-section">
+        <div class="canvas-wrapper">
+          <svg id="graphCanvas"></svg>
+          <div id="canvasInstruction" class="canvas-instruction">
+            Click on canvas to add a new node
+          </div>
+        </div>
+
+        <!-- PLAYBACK CONTROLS -->
+        <div class="playback-bar">
+          <button id="btnPlay" class="btn-playback btn-primary">
+            <i class="fa-solid fa-play"></i> Run Visualizer
+          </button>
+          <button id="btnPause" class="btn-playback" disabled>
+            <i class="fa-solid fa-pause"></i> Pause
+          </button>
+          <button id="btnStep" class="btn-playback" disabled>
+            <i class="fa-solid fa-forward-step"></i> Step
+          </button>
+          <button id="btnReset" class="btn-playback">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </button>
+
+          <div class="speed-container">
+            <label for="speedRange"><i class="fa-solid fa-gauge-high"></i> Speed:</label>
+            <input type="range" id="speedRange" min="1" max="10" value="5" />
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT SIDEBAR: CODE & LOGS -->
+      <aside class="sidebar-info">
+        <div class="panel code-panel">
+          <h3><i class="fa-solid fa-code"></i> Pseudocode</h3>
+          <pre id="pseudocodeDisplay"></pre>
+        </div>
+
+        <div class="panel complexity-panel">
+          <h3><i class="fa-solid fa-bolt"></i> Complexity</h3>
+          <p><strong>Time:</strong> <span id="timeComplexity">O(V + E)</span></p>
+          <p><strong>Space:</strong> <span id="spaceComplexity">O(V)</span></p>
+        </div>
+
+        <div class="panel log-panel">
+          <h3><i class="fa-solid fa-list-check"></i> Step Logs</h3>
+          <div id="stepLog" class="step-log-box"></div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- BOTTOM PANEL: DATA STRUCTURE INSPECTOR -->
+    <footer class="ds-inspector">
+      <div class="ds-title">
+        <i class="fa-solid fa-layer-group"></i> 
+        Data Structure State (<span id="dsName">Queue / Stack / Heap</span>)
+      </div>
+      <div id="dsContainer" class="ds-container"></div>
+    </footer>
+  </div>
+
+  <script>
+    let nodes = [];
+    let edges = [];
+    let currentTool = 'select';
+    let selectedNodeForEdge = null;
+    let draggingNode = null;
+
+    let isDirected = false;
+    let animationSteps = [];
+    let currentStepIndex = 0;
+    let isPlaying = false;
+    let playbackTimer = null;
+
+    const ALGO_DETAILS = {
+      bfs: {
+        name: "Breadth-First Search (BFS)",
+        time: "O(V + E)",
+        space: "O(V)",
+        pseudocode: 
+`1. Queue.enqueue(startNode)
+2. Mark startNode as Visited
+3. WHILE Queue is not empty:
+4.   currentNode = Queue.dequeue()
+5.   FOR EACH neighbor of currentNode:
+6.     IF neighbor is NOT Visited:
+7.       Mark neighbor as Visited
+8.       Queue.enqueue(neighbor)`
+      },
+      dfs: {
+        name: "Depth-First Search (DFS)",
+        time: "O(V + E)",
+        space: "O(V)",
+        pseudocode: 
+`1. Stack.push(startNode)
+2. WHILE Stack is not empty:
+3.   currentNode = Stack.pop()
+4.   IF currentNode is NOT Visited:
+5.     Mark currentNode as Visited
+6.     FOR EACH neighbor of currentNode:
+7.       IF neighbor is NOT Visited:
+8.         Stack.push(neighbor)`
+      },
+      dijkstra: {
+        name: "Dijkstra's Algorithm",
+        time: "O((V + E) log V)",
+        space: "O(V)",
+        pseudocode: 
+`1. Set dist[start] = 0, all others = ∞
+2. PQ.push(startNode, 0)
+3. WHILE PQ is not empty:
+4.   currentNode = PQ.popMin()
+5.   FOR EACH (neighbor, weight) of currentNode:
+6.     newDist = dist[currentNode] + weight
+7.     IF newDist < dist[neighbor]:
+8.       dist[neighbor] = newDist
+9.       PQ.push(neighbor, newDist)`
+      },
+      cycle: {
+        name: "Cycle Detection",
+        time: "O(V + E)",
+        space: "O(V)",
+        pseudocode: 
+`1. Visited set = empty, Recursion Stack = empty
+2. FOR EACH node in Graph:
+3.   IF DetectCycle(node): Return TRUE
+4. DetectCycle(node):
+5.   Mark node in Visited & RecStack
+6.   FOR EACH neighbor of node:
+7.     IF neighbor in RecStack: Cycle Found!
+8.     ELSE IF neighbor not in Visited:
+9.       IF DetectCycle(neighbor): Return TRUE
+10.  Remove node from RecStack`
+      },
+      toposort: {
+        name: "Topological Sort (Kahn's)",
+        time: "O(V + E)",
+        space: "O(V)",
+        pseudocode: 
+`1. Compute in-degree for all nodes
+2. Enqueue all nodes with in-degree == 0
+3. WHILE Queue is not empty:
+4.   node = Queue.dequeue()
+5.   Add node to TopoOrder
+6.   FOR EACH neighbor of node:
+7.     in-degree[neighbor]--
+8.     IF in-degree[neighbor] == 0: Enqueue(neighbor)`
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setupUIEventListeners();
+      setupSVGCanvas();
+      loadPreset('binaryTree');
+      updateAlgorithmInfo();
+    });
+
+    function setupSVGCanvas() {
+      const svg = document.getElementById("graphCanvas");
+
+      svg.addEventListener("click", (e) => {
+        if (e.target !== svg && e.target.tagName !== 'svg') return;
+        const rect = svg.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (currentTool === 'addNode') {
+          createNode(x, y);
+        }
+      });
+
+      svg.addEventListener("mousemove", (e) => {
+        if (draggingNode) {
+          const rect = svg.getBoundingClientRect();
+          draggingNode.x = e.clientX - rect.left;
+          draggingNode.y = e.clientY - rect.top;
+          renderGraph();
+        }
+      });
+
+      svg.addEventListener("mouseup", () => {
+        draggingNode = null;
+      });
+    }
+
+    function createNode(x, y) {
+      const id = String.fromCharCode(65 + nodes.length);
+      nodes.push({ id, x, y, state: 'default' });
+      updateNodeDropdowns();
+      renderGraph();
+    }
+
+    function createEdge(source, target, weight = 1) {
+      const exists = edges.some(e => 
+        (e.source === source && e.target === target) ||
+        (!isDirected && e.source === target && e.target === source)
+      );
+      if (!exists && source !== target) {
+        edges.push({ source, target, weight: parseInt(weight) || 1, state: 'default' });
+        renderGraph();
+      }
+    }
+
+    function renderGraph() {
+      const svg = document.getElementById("graphCanvas");
+      svg.innerHTML = "";
+
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = `
+        <marker id="arrow" viewBox="0 0 10 10" refX="24" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+        </marker>`;
+      svg.appendChild(defs);
+
+      edges.forEach((edge, index) => {
+        const srcNode = nodes.find(n => n.id === edge.source);
+        const tgtNode = nodes.find(n => n.id === edge.target);
+
+        if (!srcNode || !tgtNode) return;
+
+        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", srcNode.x);
+        line.setAttribute("y1", srcNode.y);
+        line.setAttribute("x2", tgtNode.x);
+        line.setAttribute("y2", tgtNode.y);
+        line.setAttribute("class", `edge-line ${edge.state}`);
+        if (isDirected) line.setAttribute("marker-end", "url(#arrow)");
+
+        line.onclick = () => {
+          if (currentTool === 'remove') {
+            edges.splice(index, 1);
+            renderGraph();
+          }
+        };
+
+        svg.appendChild(line);
+
+        if (document.getElementById("algoSelect").value === 'dijkstra') {
+          const midX = (srcNode.x + tgtNode.x) / 2;
+          const midY = (srcNode.y + tgtNode.y) / 2;
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", midX);
+          text.setAttribute("y", midY - 5);
+          text.setAttribute("class", "edge-weight");
+          text.textContent = edge.weight;
+          svg.appendChild(text);
+        }
+      });
+
+      nodes.forEach((node, index) => {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", node.x);
+        circle.setAttribute("cy", node.y);
+        circle.setAttribute("r", 18);
+        circle.setAttribute("class", `node-circle ${node.state}`);
+
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", node.x);
+        text.setAttribute("y", node.y);
+        text.setAttribute("class", "node-text");
+        text.textContent = node.id;
+
+        g.addEventListener("mousedown", (e) => {
+          e.stopPropagation();
+          if (currentTool === 'select') {
+            draggingNode = node;
+          } else if (currentTool === 'remove') {
+            nodes.splice(index, 1);
+            edges = edges.filter(e => e.source !== node.id && e.target !== node.id);
+            updateNodeDropdowns();
+            renderGraph();
+          } else if (currentTool === 'addEdge') {
+            if (!selectedNodeForEdge) {
+              selectedNodeForEdge = node.id;
+              node.state = 'current';
+              renderGraph();
+            } else {
+              const w = document.getElementById("algoSelect").value === 'dijkstra' 
+                ? prompt("Enter Edge Weight:", "1") 
+                : 1;
+              createEdge(selectedNodeForEdge, node.id, w);
+              selectedNodeForEdge = null;
+              resetNodeStates();
+            }
+          }
+        });
+
+        g.appendChild(circle);
+        g.appendChild(text);
+        svg.appendChild(g);
+      });
+    }
+
+    function generateBFS(startId) {
+      let steps = [];
+      let visited = new Set();
+      let queue = [startId];
+
+      visited.add(startId);
+
+      steps.push({
+        line: 1,
+        nodesState: { [startId]: 'queued' },
+        dsState: [...queue],
+        log: `Initialized BFS. Added start node ${startId} to queue.`
+      });
+
+      while (queue.length > 0) {
+        let curr = queue.shift();
+
+        steps.push({
+          line: 4,
+          nodesState: { [curr]: 'current' },
+          dsState: [...queue],
+          log: `Dequeued Node ${curr} for exploration.`
+        });
+
+        let neighbors = getNeighbors(curr);
+        for (let neighbor of neighbors) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+
+            steps.push({
+              line: 7,
+              nodesState: { [curr]: 'current', [neighbor]: 'queued' },
+              edgesState: [{ source: curr, target: neighbor, state: 'active' }],
+              dsState: [...queue],
+              log: `Visited neighbor Node ${neighbor}. Added to Queue.`
+            });
+          }
+        }
+
+        steps.push({
+          line: 3,
+          nodesState: { [curr]: 'visited' },
+          dsState: [...queue],
+          log: `Finished processing Node ${curr}.`
+        });
+      }
+
+      return steps;
+    }
+
+    function generateDFS(startId) {
+      let steps = [];
+      let visited = new Set();
+      let stack = [startId];
+
+      steps.push({
+        line: 1,
+        dsState: [...stack],
+        log: `Push start node ${startId} onto Stack.`
+      });
+
+      while (stack.length > 0) {
+        let curr = stack.pop();
+
+        if (!visited.has(curr)) {
+          visited.add(curr);
+
+          steps.push({
+            line: 5,
+            nodesState: { [curr]: 'current' },
+            dsState: [...stack],
+            log: `Popped Node ${curr} from Stack. Marked as Visited.`
+          });
+
+          let neighbors = getNeighbors(curr);
+          for (let neighbor of neighbors) {
+            if (!visited.has(neighbor)) {
+              stack.push(neighbor);
+              steps.push({
+                line: 8,
+                nodesState: { [curr]: 'visited', [neighbor]: 'queued' },
+                dsState: [...stack],
+                log: `Push neighbor Node ${neighbor} onto Stack.`
+              });
+            }
+          }
+        }
+      }
+
+      return steps;
+    }
+
+    function getNeighbors(nodeId) {
+      let neighbors = [];
+      edges.forEach(e => {
+        if (e.source === nodeId) neighbors.push(e.target);
+        else if (!isDirected && e.target === nodeId) neighbors.push(e.source);
+      });
+      return neighbors;
+    }
+
+    function runAlgorithm() {
+      const algo = document.getElementById("algoSelect").value;
+      const startNode = document.getElementById("startNodeSelect").value;
+
+      if (!startNode) {
+        alert("Please select a valid Start Node!");
+        return;
+      }
+
+      if (algo === 'bfs') animationSteps = generateBFS(startNode);
+      else if (algo === 'dfs') animationSteps = generateDFS(startNode);
+      else {
+        alert("Algorithm generator coming in next patch!");
+        return;
+      }
+
+      currentStepIndex = 0;
+      isPlaying = true;
+      updatePlaybackUI();
+      playAnimation();
+    }
+
+    function playAnimation() {
+      if (!isPlaying) return;
+
+      if (currentStepIndex < animationSteps.length) {
+        applyStep(animationSteps[currentStepIndex]);
+        currentStepIndex++;
+        const speed = 1100 - (document.getElementById("speedRange").value * 100);
+        playbackTimer = setTimeout(playAnimation, speed);
+      } else {
+        pauseAnimation();
+      }
+    }
+
+    function pauseAnimation() {
+      isPlaying = false;
+      clearTimeout(playbackTimer);
+      updatePlaybackUI();
+    }
+
+    function applyStep(step) {
+      resetNodeStates();
+      highlightCodeLine(step.line);
+
+      if (step.nodesState) {
+        Object.keys(step.nodesState).forEach(id => {
+          let n = nodes.find(node => node.id === id);
+          if (n) n.state = step.nodesState[id];
+        });
+      }
+
+      renderDSInspector(step.dsState || []);
+      addLogEntry(step.log);
+      renderGraph();
+    }
+
+    function resetNodeStates() {
+      nodes.forEach(n => n.state = 'default');
+      edges.forEach(e => e.state = 'default');
+    }
+
+    function setupUIEventListeners() {
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentTool = btn.id.replace('tool', '').toLowerCase();
+          if (currentTool === 'select') currentTool = 'select';
+          else if (currentTool === 'addnode') currentTool = 'addNode';
+          else if (currentTool === 'addedge') currentTool = 'addEdge';
+          
+          updateInstruction();
+        });
+      });
+
+      document.getElementById("btnPlay").onclick = runAlgorithm;
+      document.getElementById("btnPause").onclick = pauseAnimation;
+      document.getElementById("btnReset").onclick = resetVisualizer;
+
+      document.getElementById("presetBinaryTree").onclick = () => loadPreset('binaryTree');
+      document.getElementById("presetCyclic").onclick = () => loadPreset('cyclic');
+      document.getElementById("presetDAG").onclick = () => loadPreset('dag');
+      document.getElementById("btnClear").onclick = () => {
+        nodes = []; edges = []; renderGraph(); updateNodeDropdowns();
+      };
+
+      document.getElementById("algoSelect").onchange = updateAlgorithmInfo;
+      document.getElementById("graphType").onchange = (e) => {
+        isDirected = e.target.value === 'directed';
+        renderGraph();
+      };
+    }
+
+    function updateInstruction() {
+      const inst = document.getElementById("canvasInstruction");
+      if (currentTool === 'addNode') inst.textContent = "Click canvas to add a Node.";
+      else if (currentTool === 'addEdge') inst.textContent = "Click source node, then click target node.";
+      else if (currentTool === 'remove') inst.textContent = "Click any Node or Edge to delete it.";
+      else inst.textContent = "Drag nodes to move them.";
+    }
+
+    function updateNodeDropdowns() {
+      const startSelect = document.getElementById("startNodeSelect");
+      startSelect.innerHTML = "";
+      nodes.forEach(n => {
+        let opt = document.createElement("option");
+        opt.value = n.id;
+        opt.textContent = `Node ${n.id}`;
+        startSelect.appendChild(opt);
+      });
+    }
+
+    function updateAlgorithmInfo() {
+      const algoKey = document.getElementById("algoSelect").value;
+      const info = ALGO_DETAILS[algoKey] || ALGO_DETAILS['bfs'];
+
+      document.getElementById("pseudocodeDisplay").textContent = info.pseudocode;
+      document.getElementById("timeComplexity").textContent = info.time;
+      document.getElementById("spaceComplexity").textContent = info.space;
+      document.getElementById("dsName").textContent = algoKey === 'dfs' ? 'Stack (LIFO)' : 'Queue (FIFO)';
+    }
+
+    function highlightCodeLine(lineNum) {
+      const codeBox = document.getElementById("pseudocodeDisplay");
+      const lines = codeBox.textContent.split('\n');
+      codeBox.innerHTML = lines.map((line, idx) => {
+        if (idx + 1 === lineNum) return `<span class="line-highlight">${line}</span>`;
+        return line;
+      }).join('\n');
+    }
+
+    function renderDSInspector(dsArray) {
+      const container = document.getElementById("dsContainer");
+      container.innerHTML = "";
+      dsArray.forEach(item => {
+        const el = document.createElement("div");
+        el.className = "ds-item";
+        el.textContent = item;
+        container.appendChild(el);
+      });
+    }
+
+    function addLogEntry(msg) {
+      const logBox = document.getElementById("stepLog");
+      const entry = document.createElement("div");
+      entry.className = "log-entry active";
+      entry.textContent = msg;
+      logBox.prepend(entry);
+    }
+
+    function updatePlaybackUI() {
+      document.getElementById("btnPlay").disabled = isPlaying;
+      document.getElementById("btnPause").disabled = !isPlaying;
+    }
+
+    function resetVisualizer() {
+      pauseAnimation();
+      resetNodeStates();
+      renderGraph();
+      document.getElementById("stepLog").innerHTML = "";
+      document.getElementById("dsContainer").innerHTML = "";
+    }
+
+    function loadPreset(type) {
+      nodes = [];
+      edges = [];
+      resetVisualizer();
+
+      if (type === 'binaryTree') {
+        nodes = [
+          { id: 'A', x: 250, y: 60, state: 'default' },
+          { id: 'B', x: 150, y: 140, state: 'default' },
+          { id: 'C', x: 350, y: 140, state: 'default' },
+          { id: 'D', x: 90, y: 220, state: 'default' },
+          { id: 'E', x: 210, y: 220, state: 'default' }
+        ];
+        edges = [
+          { source: 'A', target: 'B', weight: 1, state: 'default' },
+          { source: 'A', target: 'C', weight: 1, state: 'default' },
+          { source: 'B', target: 'D', weight: 1, state: 'default' },
+          { source: 'B', target: 'E', weight: 1, state: 'default' }
+        ];
+      } else if (type === 'cyclic') {
+        nodes = [
+          { id: 'A', x: 150, y: 80, state: 'default' },
+          { id: 'B', x: 320, y: 80, state: 'default' },
+          { id: 'C', x: 320, y: 220, state: 'default' },
+          { id: 'D', x: 150, y: 220, state: 'default' }
+        ];
+        edges = [
+          { source: 'A', target: 'B', weight: 2, state: 'default' },
+          { source: 'B', target: 'C', weight: 4, state: 'default' },
+          { source: 'C', target: 'D', weight: 1, state: 'default' },
+          { source: 'D', target: 'A', weight: 3, state: 'default' }
+        ];
+      }
+
+      updateNodeDropdowns();
+      renderGraph();
+    }
+  </script>
+</body>
+</html>
